@@ -1,0 +1,166 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id           Int        @id @default(autoincrement())
+  discordId    String?    @unique
+  badgeNumber  String     @unique
+  firstName    String
+  lastName     String
+  discordNick  String?
+  department   String     // "LSPD" lub "BCSO"
+  rank         String
+  isHC         Boolean    @default(false)
+  isCB         Boolean    @default(false)
+  divisions    String     @default("[]") // JSON string of divisions
+  trainings    String     @default("[]") // JSON string of trainings
+  status       String     @default("AKTYWNY") // "AKTYWNY", "URLOP", itp. lub JSON string
+  role         String     @default("OFFICER") // "OFFICER", "ZARZAD"
+  notes        String?
+  dtuRank      String?
+  dtuAlias     String?
+  ftdRank      String?
+  metroRank    String?
+  metroBadge   String?
+  metroAlias   String?
+  hwpRank      String?
+
+  ftdHeadTrainings String @default("[]") // Szkolenia, których jest szefem
+  supervisorId Int?
+  supervisor   User?      @relation("FtdSupervision", fields: [supervisorId], references: [id])
+  cadets       User[]     @relation("FtdSupervision")
+
+  dutyLogs     DutyLog[]
+  bonuses      Bonus[]
+  leaves       Leave[]
+  incidents    Incident[]
+  warrants     Warrant[]
+  receivedPoints PointRecord[] @relation("ReceivedPoints")
+  issuedPoints   PointRecord[] @relation("IssuedPoints")
+  systemLogs     SystemLog[]
+}
+
+model DutyLog {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date         DateTime
+  hours        Float
+  report       String?  // Raport ze służby (opcjonalny)
+  createdAt    DateTime @default(now())
+}
+
+model Bonus {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         String   // np. "IAD_PLUS", "IAD_MINUS", "FTO", "METRO", "DTU"
+  amount       Float
+  date         DateTime
+  createdAt    DateTime @default(now())
+}
+
+model Leave {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startDate    DateTime
+  endDate      DateTime
+  createdAt    DateTime @default(now())
+}
+
+model PointRecord {
+  id           Int      @id @default(autoincrement())
+  officerId    Int
+  officer      User     @relation("ReceivedPoints", fields: [officerId], references: [id], onDelete: Cascade)
+  issuerId     Int?
+  issuer       User?    @relation("IssuedPoints", fields: [issuerId], references: [id], onDelete: SetNull)
+  type         String   // "PLUS" lub "MINUS"
+  reason       String
+  date         DateTime @default(now())
+}
+
+model SystemLog {
+  id           Int      @id @default(autoincrement())
+  officerId    Int
+  officer      User     @relation(fields: [officerId], references: [id], onDelete: Cascade)
+  actionType   String   // np. "HIRE", "PROMOTION", "DEMOTION", "UPDATE"
+  description  String
+  date         DateTime @default(now())
+}
+
+// --- NOWE MODELE DLA CAD/MDT ---
+
+model Citizen {
+  id          Int      @id @default(autoincrement())
+  firstName   String
+  lastName    String
+  dob         String?  // Data urodzenia w formacie DD/MM/YYYY
+  phone       String?
+  image       String?  // URL do zdjęcia (Mugshot)
+  notes       String?
+  isWanted    Boolean  @default(false)
+  isDangerous Boolean  @default(false)
+  hasWeapons  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  vehicles    Vehicle[]
+  incidents   Incident[]
+  warrants    Warrant[]
+}
+
+model Vehicle {
+  id          Int      @id @default(autoincrement())
+  plate       String   @unique
+  model       String
+  color       String
+  isStolen    Boolean  @default(false)
+  notes       String?
+  
+  ownerId     Int?
+  owner       Citizen? @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+}
+
+model Incident {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  fine        Float    @default(0)
+  jailTime    Int      @default(0) // w miesiącach (minutach RP)
+  charges     String   @default("[]") // JSON string z zarzutami
+  date        DateTime @default(now())
+
+  officerId   Int?
+  officer     User?    @relation(fields: [officerId], references: [id], onDelete: SetNull)
+  
+  citizenId   Int?
+  citizen     Citizen? @relation(fields: [citizenId], references: [id], onDelete: SetNull)
+}
+
+model Warrant {
+  id          Int      @id @default(autoincrement())
+  reason      String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  citizenId   Int?
+  citizen     Citizen? @relation(fields: [citizenId], references: [id], onDelete: Cascade)
+  
+  authorId    Int?
+  author      User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+}
+
+model DtuReport {
+  id          Int      @id @default(autoincrement())
+  title       String
+  suspect     String
+  detective   String
+  content     String
+  date        DateTime @default(now())
+}
