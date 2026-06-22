@@ -1219,7 +1219,17 @@ function getBadgeRange(department, rank) {
   return [500, 999];
 }
 
-async function getNextAvailableBadge(department, rank) {
+async function getNextAvailableBadge(department, rank, divisions = []) {
+  if (divisions.includes('HC BCSO') && department === 'BCSO') {
+    const min = 401, max = 405;
+    const users = await prisma.user.findMany({ select: { badgeNumber: true } });
+    const takenBadges = users.map(u => parseInt(u.badgeNumber, 10)).filter(n => !isNaN(n));
+    for (let i = min; i <= max; i++) {
+      if (!takenBadges.includes(i)) return `${i}`;
+    }
+    throw new Error(`Brak wolnych odznak dla HC BCSO w zakresie ${min}-${max}`);
+  }
+
   const [min, max] = getBadgeRange(department, rank);
   const users = await prisma.user.findMany({ select: { badgeNumber: true } });
   const takenBadges = users.map(u => parseInt(u.badgeNumber, 10)).filter(n => !isNaN(n));
@@ -1248,7 +1258,7 @@ app.get('/api/officers', async (req, res) => {
 app.post('/api/officers', async (req, res) => {
   try {
     const data = req.body;
-    const newBadge = await getNextAvailableBadge(data.department, data.rank);
+    const newBadge = await getNextAvailableBadge(data.department, data.rank, data.divisions);
     console.log(`[POST] department: ${data.department}, rank: ${data.rank} -> newBadge: ${newBadge}`);
     
     const newOfficer = await prisma.user.create({
@@ -1314,27 +1324,32 @@ app.put('/api/officers/:id', async (req, res) => {
 
     let badgeToSave = oldOfficer.badgeNumber;
     let badgeChanged = false;
-
     let rankAction = null;
 
+    const oldDivs = safeParseJSON(oldOfficer.divisions);
+    const newDivs = data.divisions ? (typeof data.divisions === 'string' ? safeParseJSON(data.divisions) : data.divisions) : oldDivs;
+    const oldHcBcso = oldDivs.includes('HC BCSO');
+    const newHcBcso = newDivs.includes('HC BCSO');
+
     // Jeżeli stopień się zmienił, wygeneruj nową odznakę i ogłoś awans/degradację
-    if (data.rank && oldOfficer.rank !== data.rank) {
-      badgeToSave = await getNextAvailableBadge(data.department || oldOfficer.department, data.rank);
+    if ((data.rank && oldOfficer.rank !== data.rank) || (oldHcBcso !== newHcBcso)) {
+      const targetRank = data.rank || oldOfficer.rank;
+      badgeToSave = await getNextAvailableBadge(data.department || oldOfficer.department, targetRank, newDivs);
       badgeChanged = true;
       
       const oldRankMin = getBadgeRange(oldOfficer.department, oldOfficer.rank)[0];
-      const newRankMin = getBadgeRange(data.department || oldOfficer.department, data.rank)[0];
+      const newRankMin = getBadgeRange(data.department || oldOfficer.department, targetRank)[0];
       
       // Im mniejszy numer, tym wyższy stopień
-      if (newRankMin < oldRankMin) {
+      if (newRankMin < oldRankMin || (newHcBcso && !oldHcBcso)) {
         rankAction = 'PROMOTION';
       } else {
         rankAction = 'DEMOTION';
       }
       
-      console.log(`[PUT] Rank changed from ${oldOfficer.rank} to ${data.rank}. Action: ${rankAction}. New badge: ${badgeToSave}`);
+      console.log(`[PUT] Rank/HC changed to ${targetRank} / HCBcso: ${newHcBcso}. Action: ${rankAction}. New badge: ${badgeToSave}`);
     } else {
-      console.log(`[PUT] Rank not changed. Keeping badge: ${badgeToSave}`);
+      console.log(`[PUT] Rank/HC not changed. Keeping badge: ${badgeToSave}`);
     }
 
     const updatedOfficer = await prisma.user.update({
