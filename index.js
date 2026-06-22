@@ -1475,6 +1475,29 @@ app.get('/api/dashboard-logs', async (req, res) => {
 });
 
 // --- 4. DUTY LOGS API ---
+app.delete('/api/duty/clear', async (req, res) => {
+  try {
+    await prisma.dutyLog.deleteMany();
+    res.json({ success: true, message: 'Wszystkie godziny zostały wyzerowane' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Błąd podczas czyszczenia godzin' });
+  }
+});
+
+app.delete('/api/duty/clear/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    await prisma.dutyLog.deleteMany({
+      where: { userId: parseInt(userId) }
+    });
+    res.json({ success: true, message: 'Godziny wybranego pracownika zostały wyzerowane' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Błąd podczas czyszczenia godzin pracownika' });
+  }
+});
+
 app.get('/api/duty', async (req, res) => {
   try {
     const logs = await prisma.dutyLog.findMany({
