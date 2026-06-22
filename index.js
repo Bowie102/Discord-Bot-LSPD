@@ -1282,8 +1282,7 @@ app.post('/api/officers', async (req, res) => {
         metroBadge: data.metroBadge || null,
         metroAlias: data.metroAlias || null,
         hwpRank: data.hwpRank || null,
-        supervisorId: data.supervisorId || null,
-        ftdHeadTrainings: JSON.stringify(data.ftdHeadTrainings || [])
+        supervisorId: data.supervisorId || null
       }
     });
     
@@ -1374,8 +1373,7 @@ app.put('/api/officers/:id', async (req, res) => {
         metroBadge: data.metroBadge !== undefined ? data.metroBadge : oldOfficer.metroBadge,
         metroAlias: data.metroAlias !== undefined ? data.metroAlias : oldOfficer.metroAlias,
         hwpRank: data.hwpRank !== undefined ? data.hwpRank : oldOfficer.hwpRank,
-        supervisorId: data.supervisorId !== undefined ? data.supervisorId : oldOfficer.supervisorId,
-        ftdHeadTrainings: data.ftdHeadTrainings !== undefined ? JSON.stringify(data.ftdHeadTrainings) : oldOfficer.ftdHeadTrainings
+        supervisorId: data.supervisorId !== undefined ? data.supervisorId : oldOfficer.supervisorId
       }
     });
 
