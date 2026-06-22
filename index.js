@@ -1220,8 +1220,11 @@ function getBadgeRange(department, rank) {
 }
 
 async function getNextAvailableBadge(department, rank, divisions = []) {
+  if (department === 'BCSO' && rank === 'Sheriff') return '401';
+  if (department === 'BCSO' && rank === 'Undersheriff') return '402';
+
   if (divisions.includes('HC BCSO')) {
-    const min = 401, max = 405;
+    const min = 403, max = 405;
     const users = await prisma.user.findMany({ select: { badgeNumber: true } });
     const takenBadges = users.map(u => parseInt(u.badgeNumber, 10)).filter(n => !isNaN(n));
     for (let i = min; i <= max; i++) {
@@ -1258,7 +1261,11 @@ app.get('/api/officers', async (req, res) => {
 app.post('/api/officers', async (req, res) => {
   try {
     const data = req.body;
-    const newBadge = await getNextAvailableBadge(data.department, data.rank, data.divisions);
+    let newDivs = data.divisions || [];
+    if (data.department === 'BCSO' && (data.rank === 'Sheriff' || data.rank === 'Undersheriff')) {
+      if (!newDivs.includes('HC BCSO')) newDivs.push('HC BCSO');
+    }
+    const newBadge = await getNextAvailableBadge(data.department, data.rank, newDivs);
     console.log(`[POST] department: ${data.department}, rank: ${data.rank} -> newBadge: ${newBadge}`);
     
     const newOfficer = await prisma.user.create({
@@ -1271,7 +1278,7 @@ app.post('/api/officers', async (req, res) => {
         discordNick: data.discordNick,
         isHC: data.isHC || false,
         isCB: data.isCB || false,
-        divisions: JSON.stringify(data.divisions || []),
+        divisions: JSON.stringify(newDivs),
         trainings: JSON.stringify(data.trainings || []),
         status: JSON.stringify(data.statuses || []),
         notes: data.notes || '',
@@ -1330,7 +1337,12 @@ app.put('/api/officers/:id', async (req, res) => {
       catch(e) { return []; }
     };
     const oldDivs = safeParseJSON(oldOfficer.divisions);
-    const newDivs = data.divisions ? (typeof data.divisions === 'string' ? safeParseJSON(data.divisions) : data.divisions) : oldDivs;
+    let newDivs = data.divisions ? (typeof data.divisions === 'string' ? safeParseJSON(data.divisions) : data.divisions) : oldDivs;
+    const targetDept = data.department !== undefined ? data.department : oldOfficer.department;
+    const targetRankForAuto = data.rank !== undefined ? data.rank : oldOfficer.rank;
+    if (targetDept === 'BCSO' && (targetRankForAuto === 'Sheriff' || targetRankForAuto === 'Undersheriff')) {
+      if (!newDivs.includes('HC BCSO')) newDivs.push('HC BCSO');
+    }
     const oldHcBcso = oldDivs.includes('HC BCSO');
     const newHcBcso = newDivs.includes('HC BCSO');
 
@@ -1366,7 +1378,7 @@ app.put('/api/officers/:id', async (req, res) => {
         isHC: data.isHC !== undefined ? data.isHC : oldOfficer.isHC,
         isCB: data.isCB !== undefined ? data.isCB : oldOfficer.isCB,
         badgeNumber: badgeToSave,
-        divisions: data.divisions ? (typeof data.divisions !== 'string' ? JSON.stringify(data.divisions) : data.divisions) : oldOfficer.divisions,
+        divisions: JSON.stringify(newDivs),
         trainings: data.trainings ? (typeof data.trainings !== 'string' ? JSON.stringify(data.trainings) : data.trainings) : oldOfficer.trainings,
         status: data.statuses ? (typeof data.statuses !== 'string' ? JSON.stringify(data.statuses) : data.statuses) : oldOfficer.status,
         notes: data.notes !== undefined ? data.notes : oldOfficer.notes,
