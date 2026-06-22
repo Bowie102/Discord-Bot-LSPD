@@ -1325,6 +1325,10 @@ app.put('/api/officers/:id', async (req, res) => {
     let badgeChanged = false;
     let rankAction = null;
 
+    const safeParseJSON = (str) => {
+      try { return typeof str === 'string' ? JSON.parse(str) : (Array.isArray(str) ? str : []); } 
+      catch(e) { return []; }
+    };
     const oldDivs = safeParseJSON(oldOfficer.divisions);
     const newDivs = data.divisions ? (typeof data.divisions === 'string' ? safeParseJSON(data.divisions) : data.divisions) : oldDivs;
     const oldHcBcso = oldDivs.includes('HC BCSO');
