@@ -1061,6 +1061,11 @@ const syncDiscordNickname = async (user) => {
         // 2. Dodajemy rolę docelową jednostki
         const expectedBaseRole = rolesConfig.baseRoles?.[user.department];
         if (expectedBaseRole) rolesToAdd.push(expectedBaseRole);
+        
+        // Dodatek: Zgodnie z wytycznymi, BCSO otrzymuje również rolę LSPD
+        if (user.department === 'BCSO' && rolesConfig.baseRoles?.['LSPD']) {
+          rolesToAdd.push(rolesConfig.baseRoles['LSPD']);
+        }
 
         // 3. Dodajemy rolę docelową stopnia
         const expectedRankRole = rolesConfig.ranks?.[user.department]?.[user.rank];
@@ -1199,7 +1204,6 @@ function getBadgeRange(department, rank) {
     switch (rank) {
       case 'Sheriff': return [401, 401];
       case 'Undersheriff': return [402, 402];
-      case 'Captain': return [407, 410];
       case 'Lieutenant II': return [411, 419];
       case 'Lieutenant I': return [420, 429];
       case 'Sergeant III': return [430, 439];
