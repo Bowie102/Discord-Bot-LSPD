@@ -31,7 +31,7 @@ model User {
   metroAlias   String?
   hwpRank      String?
 
-  ftdHeadTrainings String @default("[]") // Szkolenia, których jest szefem
+
   supervisorId Int?
   supervisor   User?      @relation("FtdSupervision", fields: [supervisorId], references: [id])
   cadets       User[]     @relation("FtdSupervision")
