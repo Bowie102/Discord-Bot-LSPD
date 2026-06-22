@@ -1220,7 +1220,7 @@ function getBadgeRange(department, rank) {
 }
 
 async function getNextAvailableBadge(department, rank, divisions = []) {
-  if (divisions.includes('HC BCSO') && department === 'BCSO') {
+  if (divisions.includes('HC BCSO')) {
     const min = 401, max = 405;
     const users = await prisma.user.findMany({ select: { badgeNumber: true } });
     const takenBadges = users.map(u => parseInt(u.badgeNumber, 10)).filter(n => !isNaN(n));
