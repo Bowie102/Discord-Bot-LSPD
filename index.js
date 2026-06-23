@@ -1261,6 +1261,7 @@ app.post('/api/login', (req, res) => {
 
 app.use('/api', (req, res, next) => {
   if (req.path === '/login') return next();
+  if (req.path === '/duty' && req.method === 'POST') return next();
   
   if (['POST', 'PUT', 'DELETE'].includes(req.method)) {
     const authHeader = req.headers.authorization;
