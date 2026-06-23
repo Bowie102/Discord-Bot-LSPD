@@ -1734,7 +1734,18 @@ app.post('/api/points', async (req, res) => {
     res.json(record);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Błąd nadawania punktu' });
+    res.status(500).json({ error: 'Błąd dodawania wpisu' });
+  }
+});
+
+app.delete('/api/points/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.pointRecord.delete({ where: { id: parseInt(id) } });
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Błąd usuwania wpisu z akt' });
   }
 });
 
