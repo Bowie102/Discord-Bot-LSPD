@@ -14,6 +14,13 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+});
+
 // CAD Routes
 const cadRoutes = require('./cadRoutes');
 app.use('/api/cad', cadRoutes);
@@ -318,7 +325,12 @@ client.on('interactionCreate', async (interaction) => {
       new ActionRowBuilder().addComponents(expRPInput)
     );
 
-    await interaction.showModal(modal);
+    try {
+      await interaction.showModal(modal);
+    } catch (err) {
+      console.error("Error showing modal:", err);
+      await interaction.reply({ content: "Wystąpił krytyczny błąd podczas ładowania formularza. Zgłoś to administracji.", ephemeral: true }).catch(() => {});
+    }
   }
 
   if (interaction.isModalSubmit() && interaction.customId === 'application_modal') {
