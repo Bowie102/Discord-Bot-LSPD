@@ -1246,6 +1246,33 @@ async function getNextAvailableBadge(department, rank, divisions = []) {
 }
 
 // --- API ROUTES ---
+const VALID_API_KEYS = ['fuzetea', 'dtucwel'];
+
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body;
+  if (username === 'zarzad' && password === 'fuzetea') {
+    return res.json({ success: true, role: 'ZARZAD', token: password });
+  } else if (username === 'dtu' && password === 'dtucwel') {
+    return res.json({ success: true, role: 'DTU', token: password });
+  }
+  return res.status(401).json({ error: 'ACCESS DENIED. INVALID CREDENTIALS.' });
+});
+
+app.use('/api', (req, res, next) => {
+  if (req.path === '/login') return next();
+  
+  if (['POST', 'PUT', 'DELETE'].includes(req.method)) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Brak tokenu autoryzacyjnego. Zaloguj się ponownie.' });
+    }
+    const token = authHeader.split(' ')[1];
+    if (!VALID_API_KEYS.includes(token)) {
+      return res.status(403).json({ error: 'Nieprawidłowy token autoryzacyjny.' });
+    }
+  }
+  next();
+});
 
 // 1. Pobieranie listy pracowników (Roster)
 app.get('/api/officers', async (req, res) => {
