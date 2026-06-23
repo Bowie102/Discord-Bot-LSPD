@@ -1246,13 +1246,14 @@ async function getNextAvailableBadge(department, rank, divisions = []) {
 }
 
 // --- API ROUTES ---
-const VALID_API_KEYS = ['fuzetea', 'dtucwel'];
+const VALID_API_KEYS = [process.env.ZARZAD_PASSWORD, process.env.DTU_PASSWORD].filter(Boolean);
 
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
-  if (username === 'zarzad' && password === 'fuzetea') {
+  
+  if (username === 'zarzad' && password === process.env.ZARZAD_PASSWORD) {
     return res.json({ success: true, role: 'ZARZAD', token: password });
-  } else if (username === 'dtu' && password === 'dtucwel') {
+  } else if (username === 'dtu' && password === process.env.DTU_PASSWORD) {
     return res.json({ success: true, role: 'DTU', token: password });
   }
   return res.status(401).json({ error: 'ACCESS DENIED. INVALID CREDENTIALS.' });
